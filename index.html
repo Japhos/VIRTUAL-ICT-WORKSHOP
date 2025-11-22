@@ -1,0 +1,523 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Virtual ICT Workshop</title>
+<style>
+body{font-family:'Segoe UI',Tahoma,sans-serif;margin:0;background:#ecf8ee}
+header{background:#0b6b2d;color:#fff;padding:15px;text-align:center}
+nav{display:flex;justify-content:center;background:#117a36;flex-wrap:wrap}
+nav button{background:none;border:none;color:#fff;padding:12px 16px;font-size:15px;cursor:pointer;transition:.25s}
+nav button:hover,nav button.active{background:#0d5f27}
+section{display:none;padding:20px;max-width:980px;margin:20px auto;background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.12);opacity:0;transform:translateY(20px);transition:all .35s}
+section.active{display:block;opacity:1;transform:translateY(0)}
+h2{color:#0b6b2d;margin-top:0}
+.tool-box{background:#f6fdf6;padding:15px;margin:10px 0;border:1px solid #cde8ce;border-radius:8px}
+input,textarea,select{width:100%;padding:8px;margin-top:8px;border:1px solid #ccc;border-radius:5px;font-size:15px;box-sizing:border-box}
+button.run-btn{background:#0b6b2d;color:#fff;border:none;padding:8px 14px;margin-top:8px;border-radius:4px;cursor:pointer}
+button.run-btn:hover{background:#0d5f27}
+iframe{width:100%;height:200px;border:1px solid #ccc;margin-top:8px;border-radius:5px}
+#loginPage{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background:linear-gradient(135deg,#0b6b2d,#3ea05a);color:#fff}
+#loginBox{background:#fff;color:#333;padding:25px;border-radius:12px;width:340px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.16)}
+#loginBox h2{color:#0b6b2d;margin-bottom:12px}
+#logoutBtn{float:right;margin-right:20px;background:#f44336}
+.success{color:green;font-weight:700}
+.error{color:red;font-weight:700}
+
+/* Screamer overlay */
+#screamer{position:fixed;inset:0;background:rgba(255,0,0,0.85);color:#fff;display:none;align-items:center;justify-content:center;z-index:9999;font-size:18px;text-align:center;padding:18px}
+#screamer .box{max-width:900px;background:rgba(255,255,255,0.95);padding:18px;border-radius:8px;color:#000}
+#screamer button{background:#b30000;color:#fff;border:none;padding:10px 14px;border-radius:6px;margin-top:12px;font-weight:bold;cursor:pointer}
+
+/* Assembly styles */
+.component{padding:10px;border:2px solid #ccc;border-radius:6px;margin:5px;cursor:grab;display:inline-block;user-select:none}
+.component.done{background:#b2ffb2;border-color:#0b6b2d;color:#0b6b2d;cursor:default}
+.component.wrong{background:#ffb2b2;border-color:#ff0000;color:#800000}
+.case-area{border:2px dashed #cde8ce;border-radius:8px;padding:12px;min-height:160px;background:#f8fff8}
+.case-slot{display:block;margin:6px 0;padding:10px;border:2px dashed #c0c0c0;border-radius:6px;background:#fff;text-align:center}
+.case-slot.filled{border-style:solid;background:#efffee}
+
+/* Crimping styles */
+.slot{display:inline-block;width:45px;height:36px;border:2px dashed #ccc;margin:4px;border-radius:4px;vertical-align:middle;text-align:center;line-height:36px;font-size:12px}
+.wire{padding:4px 8px;border-radius:3px;color:#fff;margin:3px;cursor:grab;font-size:12px;user-select:none}
+.wire.orange{background:#f18f01}
+.wire.orange-w{background:linear-gradient(90deg,#fff 40%,#f18f01 41%);color:#000}
+.wire.green{background:#28a745}
+.wire.green-w{background:linear-gradient(90deg,#fff 40%,#28a745 41%);color:#000}
+.wire.blue{background:#007bff}
+.wire.blue-w{background:linear-gradient(90deg,#fff 40%,#007bff 41%);color:#000}
+.wire.brown{background:#8b4513}
+.wire.brown-w{background:linear-gradient(90deg,#fff 40%,#8b4513 41%);color:#000}
+
+/* responsive */
+@media (max-width:820px){ nav{flex-direction:row;gap:6px} .component{display:block} .case-slot{font-size:14px} .tool-box{padding:12px} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginPage">
+  <div id="loginBox">
+    <h2>Virtual ICT Workshop</h2>
+    <p><b>Sign in to continue</b></p>
+    <input id="username" placeholder="Enter username" />
+    <input id="password" type="password" placeholder="Enter password" style="margin-top:8px" />
+    <div style="margin-top:12px">
+      <button class="run-btn" onclick="login()">Login</button>
+    </div>
+    <p style="font-size:13px;margin-top:10px">Demo: <b>student</b> / <b>1234</b></p>
+    <p id="loginMsg" style="color:red"></p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none">
+  <header>
+    <h1>Virtual ICT Workshop</h1>
+    <button id="logoutBtn" class="run-btn" onclick="logout()" style="float:right">Logout</button>
+    <div style="font-size:13px;margin-top:6px">Practice PC assembly and cable crimping — mistakes trigger an immediate alert</div>
+  </header>
+
+  <nav>
+    <button class="active" onclick="showSection('dashboard',event)">Dashboard</button>
+    <button onclick="showSection('assembly',event)">PC Assembly</button>
+    <button onclick="showSection('crimping',event)">Cable Crimping</button>
+    <button onclick="showSection('ipconfig',event)">IP Configurator</button>
+    <button onclick="showSection('htmltool',event)">HTML Live Editor</button>
+    <button onclick="showSection('assessment',event)">Assessments</button>
+  </nav>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="active">
+    <h2>Welcome to the Virtual ICT Workshop</h2>
+    <div class="tool-box">
+      <ul>
+        <li>This virtual ICT workshop lets you interactively practice essential ICT skills such as computer assembly, Ethernet cable crimping, IP configuration, and basic HTML coding.</li>
+        <li>Explore each section through the navigation menu above and test your understanding with the ICT assessment.</li>
+        <li>Mistakes trigger instant feedback, helping you learn correct procedures safely in a simulated environment.</li>
+        <li>Your progress is kept until you log out.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- PC ASSEMBLY -->
+  <section id="assembly">
+    <h2>🖥️ PC Assembly Practice</h2>
+    <div class="tool-box">
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:260px">
+          <h3>Parts (drag or click)</h3>
+          <div id="pcComponents"></div>
+        </div>
+        <div style="flex:1;min-width:260px">
+          <h3>Case (drop parts)</h3>
+          <div class="case-area" id="caseArea"></div>
+          <div style="margin-top:8px">
+            <button class="run-btn" onclick="resetAssembly()">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div id="assemblyMsg" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- CRIMPING -->
+  <section id="crimping">
+    <h2>🔌 Ethernet Cable Crimping (T568B)</h3>
+    <div class="tool-box">
+      <h3>Wire Palette</h3>
+      <div id="wirePalette"></div>
+      <h3 style="margin-top:12px">RJ45 Slots (left → right)</h3>
+      <div id="rj45" style="margin-bottom:8px"></div>
+      <div>
+        <button class="run-btn" onclick="checkCrimp()">Crimp</button>
+        <button class="run-btn" style="background:#6c757d" onclick="resetCrimp()">Reset</button>
+      </div>
+      <div id="crimpMsg" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- IP CONFIG -->
+  <section id="ipconfig" class="content-section">
+    <h2>IP Configuration</h2>
+    <div class="tool-box">
+      <form id="ipForm" onsubmit="event.preventDefault(); validateIPConfig();">
+        <label for="ipAddress">IP Address:</label>
+        <input type="text" id="ipAddress" placeholder="e.g. 192.168.1.10"><br><br>
+        <label for="subnetMask">Subnet Mask:</label>
+        <input type="text" id="subnetMask" placeholder="e.g. 255.255.255.0"><br><br>
+        <label for="defaultGateway">Default Gateway:</label>
+        <input type="text" id="defaultGateway" placeholder="e.g. 192.168.1.1"><br><br>
+        <label for="dnsServer">DNS Server:</label>
+        <input type="text" id="dnsServer" placeholder="e.g. 8.8.8.8"><br><br>
+        <button type="button" class="run-btn" onclick="validateIPConfig()">Submit</button>
+        <button type="button" class="run-btn" style="background:#6c757d;margin-left:8px" onclick="resetIPForm()">Reset</button>
+      </form>
+      <p id="ipFeedback" class=""></p>
+    </div>
+  </section>
+
+  <!-- HTML TOOL -->
+  <section id="htmltool">
+    <h2>HTML Live Coding Tool</h2>
+    <div class="tool-box">
+      <textarea id="htmlcode" rows="8" placeholder="&lt;h1&gt;Hello ICT World&lt;/h1&gt;"></textarea>
+      <div style="margin-top:8px">
+        <button class="run-btn" onclick="runHTML()">Run</button>
+        <button class="run-btn" style="background:#6c757d;margin-left:8px" onclick="resetHTMLTool()">Reset</button>
+      </div>
+      <iframe id="preview"></iframe>
+    </div>
+  </section>
+
+  <!-- ASSESSMENT -->
+  <section id="assessment">
+    <h2>ICT Knowledge Assessment</h2>
+    <div class="tool-box">
+      <p><b>Question 1:</b> What is the main purpose of an IP address?</p>
+      <select id="q1">
+        <option value="">-- choose --</option>
+        <option>To identify a device on a network</option>
+        <option>To store data</option>
+        <option>To power a computer</option>
+      </select>
+      <div id="f1"></div>
+
+      <p><b>Question 2:</b> Which tool is used for crimping?</p>
+      <select id="q2">
+        <option value="">-- choose --</option>
+        <option>Hammer</option>
+        <option>Crimping tool</option>
+        <option>Pliers</option>
+      </select>
+      <div id="f2"></div>
+
+      <p><b>Question 3:</b> What is the purpose of a subnet mask?</p>
+      <select id="q3">
+        <option value="">-- choose --</option>
+        <option>To identify the network and host portions of an IP address</option>
+        <option>To increase internet speed</option>
+        <option>To block IP addresses</option>
+      </select>
+      <div id="f3"></div>
+
+      <p><b>Question 4:</b> Which layer of the OSI model does IP addressing occur?</p>
+      <select id="q4">
+        <option value="">-- choose --</option>
+        <option>Data Link Layer</option>
+        <option>Network Layer</option>
+        <option>Application Layer</option>
+      </select>
+      <div id="f4"></div>
+
+      <p><b>Question 5:</b> Which of the following is a valid private IP address?</p>
+      <select id="q5">
+        <option value="">-- choose --</option>
+        <option>8.8.8.8</option>
+        <option>172.16.0.10</option>
+        <option>200.100.50.25</option>
+      </select>
+      <div id="f5"></div>
+
+      <div style="margin-top:12px">
+        <button class="run-btn" onclick="checkAnswers()">Submit</button>
+        <button class="run-btn" style="background:#6c757d;margin-left:8px" onclick="resetAssessment()">Reset</button>
+      </div>
+
+      <p id="score" style="margin-top:12px;font-size:16px;"></p>
+    </div>
+  </section>
+
+</div>
+
+<!-- Screamer -->
+<div id="screamer">
+  <div class="box">
+    <h3 id="screamTitle">WRONG STEP!</h3>
+    <p id="screamText"></p>
+    <button onclick="closeScreamer()">Dismiss</button>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBNO3P32U3IgDJssj8BoJcaGkzJx--zyBo",
+    authDomain: "virtual-ict-workshop.firebaseapp.com",
+    databaseURL: "https://virtual-ict-workshop-default-rtdb.firebaseio.com",
+    projectId: "virtual-ict-workshop",
+    storageBucket: "virtual-ict-workshop.firebasestorage.app",
+    messagingSenderId: "251031783132",
+    appId: "1:251031783132:web:4da77cb7dca37e19809619",
+    measurementId: "G-DRKB9Y6ZWX"
+  };
+  const app = firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+</script>
+<!-- End Firebase -->
+<script>
+/* ------------ Login ------------ */
+function login(){
+  const u=document.getElementById('username').value.trim();
+  const p=document.getElementById('password').value.trim();
+  if(u==='student' && p==='1234'){
+    document.getElementById('loginPage').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+    loadAssembly();loadCrimping();
+  }else{
+    document.getElementById('loginMsg').textContent='Invalid credentials. Try demo: student / 1234';
+  }
+}
+function logout(){
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('loginPage').style.display='flex';
+  document.getElementById('username').value='';
+  document.getElementById('password').value='';
+  document.getElementById('loginMsg').textContent='';
+}
+function showSection(id,e){
+  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(e) e.target.classList.add('active');
+}
+
+/* ------------ HTML Runner ------------ */
+function runHTML(){
+  document.getElementById('preview').srcdoc=document.getElementById('htmlcode').value;
+}
+/* ------------ HTML Editor Logic (inserted) ------------ */
+function validateHTMLCode() {
+  const code = document.getElementById('htmlcode').value.trim();
+  if (code === '') {
+    scream('EMPTY CODE', 'You must enter some HTML code before running.');
+    return false;
+  }
+  if (!code.startsWith('<') || !code.includes('>')) {
+    scream('INVALID CODE', 'Your HTML code seems invalid. Please check the syntax.');
+    return false;
+  }
+  return true;
+}
+
+const originalRunHTML = runHTML;
+runHTML = function() {
+  if (validateHTMLCode()) {
+    originalRunHTML();
+  }
+};
+
+/* Reset function for HTML tool (only addition) */
+function resetHTMLTool(){
+  document.getElementById('htmlcode').value = '';
+  document.getElementById('preview').srcdoc = '';
+  document.getElementById('htmlcode').focus();
+}
+
+/* ------------ Assessment ------------ */
+function checkAnswers(){
+  let s=0;
+  const feedbacks=[
+    {id:'q1',ans:'To identify a device on a network',fb:'f1'},
+    {id:'q2',ans:'Crimping tool',fb:'f2'},
+    {id:'q3',ans:'To identify the network and host portions of an IP address',fb:'f3'},
+    {id:'q4',ans:'Network Layer',fb:'f4'},
+    {id:'q5',ans:'172.16.0.10',fb:'f5'}
+  ];
+  feedbacks.forEach(q=>{
+    const chosen=document.getElementById(q.id).value;
+    const fb=document.getElementById(q.fb);
+    if(chosen===q.ans){fb.innerHTML='<span class="success">✔️ Correct</span>';s++;}
+    else if(chosen===''){fb.innerHTML='<span class="error">⚠️ Not answered</span>';} 
+    else{fb.innerHTML=`<span class="error">❌ Wrong. Correct answer: ${q.ans}</span>`;}
+  });
+  document.getElementById('score').innerHTML=`<b>You scored ${s}/5</b>`;
+}
+function resetAssessment(){
+  for(let i=1;i<=5;i++){
+    document.getElementById(`q${i}`).value='';
+    document.getElementById(`f${i}`).innerHTML='';
+  }
+  document.getElementById('score').innerHTML='';
+  document.getElementById('assessment').scrollIntoView({behavior:'smooth'});
+}
+
+/* ------------ Screamer ------------ */
+let audioCtx=null;
+function playTone(d=380){
+  try{
+    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    o.type='sawtooth';
+    o.frequency.setValueAtTime(520,audioCtx.currentTime);
+    g.gain.setValueAtTime(.0001,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.5,audioCtx.currentTime+.02);
+    o.connect(g);g.connect(audioCtx.destination);
+    o.start();
+    o.frequency.exponentialRampToValueAtTime(220,audioCtx.currentTime+(d/1000));
+    setTimeout(()=>{o.stop();},d);
+  }catch(e){}
+}
+function scream(t,m){
+  document.getElementById('screamTitle').textContent=t;
+  document.getElementById('screamText').innerHTML=m;
+  document.getElementById('screamer').style.display='flex';
+  playTone();
+}
+function closeScreamer(){
+  document.getElementById('screamer').style.display='none';
+}
+
+/* ------------ PC Assembly ------------ */
+const assemblySteps=[
+  {id:'motherboard',label:'Install motherboard'},
+  {id:'cpu',label:'Attach CPU & heat sink'},
+  {id:'ram',label:'Insert RAM'},
+  {id:'drives',label:'Connect drives'},
+  {id:'psu',label:'Attach power supply'},
+  {id:'close',label:'Close casing'}
+];
+let assemblyPlaced=Array(assemblySteps.length).fill(null);
+function loadAssembly(){
+  const pool=document.getElementById('pcComponents');pool.innerHTML='';
+  [...assemblySteps].sort(()=>Math.random()-.5).forEach(s=>{
+    const el=document.createElement('div');
+    el.className='component';el.textContent=s.label;el.dataset.id=s.id;el.draggable=true;
+    el.addEventListener('dragstart',assemblyDragStart);
+    el.addEventListener('click',()=>assemblyClickPlace(s.id));
+    pool.appendChild(el);
+  });
+  const caseArea=document.getElementById('caseArea');caseArea.innerHTML='';
+  for(let i=0;i<assemblySteps.length;i++){
+    const slot=document.createElement('div');
+    slot.className='case-slot';slot.dataset.index=i;slot.textContent=`Slot ${i+1}`;
+    slot.addEventListener('dragover',e=>e.preventDefault());
+    slot.addEventListener('drop',assemblyDrop);
+    slot.addEventListener('click',()=>assemblySlotClick(i));
+    caseArea.appendChild(slot);
+  }
+  assemblyPlaced.fill(null);
+  document.getElementById('assemblyMsg').innerHTML='';
+}
+function assemblyDragStart(e){e.dataTransfer.setData('text/plain',e.target.dataset.id);}
+function assemblyDrop(e){e.preventDefault();attemptPlaceAssembly(e.dataTransfer.getData('text/plain'),parseInt(e.currentTarget.dataset.index));}
+function assemblyClickPlace(id){
+  const n=assemblyPlaced.indexOf(null);
+  if(n===-1){scream('Case Full','All slots are filled. Remove a part or Reset.');return;}
+  attemptPlaceAssembly(id,n);
+}
+function attemptPlaceAssembly(id,idx){
+  if(assemblyPlaced.includes(id)){scream('Duplicate Part','This part is already placed elsewhere.');return;}
+  const exp=assemblySteps[idx].id;
+  if(id!==exp){scream('WRONG PLACEMENT',`You placed <b>${getAssemblyLabel(id)}</b> into Slot ${idx+1}. That is incorrect.`);markWrong(id);return;}
+  assemblyPlaced[idx]=id;markDone(id);refreshAssembly();
+  document.getElementById('assemblyMsg').innerHTML=`<p class="success">✅ Correct: ${getAssemblyLabel(id)} in Slot ${idx+1}</p>`;
+  if(!assemblyPlaced.includes(null)){document.getElementById('assemblyMsg').innerHTML=`<p class="success">🎉 PC Assembly Complete!</p>`;}
+}
+function getAssemblyLabel(id){const f=assemblySteps.find(x=>x.id===id);return f?f.label:id;}
+function markDone(id){document.querySelectorAll('#pcComponents .component').forEach(c=>{if(c.dataset.id===id){c.classList.add('done');c.draggable=false;}});}
+function markWrong(id){document.querySelectorAll('#pcComponents .component').forEach(c=>{if(c.dataset.id===id){c.classList.add('wrong');setTimeout(()=>c.classList.remove('wrong'),850);}});} 
+function assemblySlotClick(i){
+  const p=assemblyPlaced[i];if(!p)return;
+  assemblyPlaced[i]=null;
+  document.querySelectorAll('#pcComponents .component').forEach(c=>{if(c.dataset.id===p){c.classList.remove('done');c.draggable=true;}});
+  refreshAssembly();
+  document.getElementById('assemblyMsg').innerHTML=`<p class="error">Removed ${getAssemblyLabel(p)} from Slot ${i+1}.</p>`;
+}
+function refreshAssembly(){document.querySelectorAll('#caseArea .case-slot').forEach((s,i)=>{const p=assemblyPlaced[i];if(p){s.classList.add('filled');s.innerHTML=`<strong>Slot ${i+1}:</strong> ${getAssemblyLabel(p)} <span style="font-size:12px;color:#666">Click to remove</span>`;}else{s.classList.remove('filled');s.textContent=`Slot ${i+1}`;}});} 
+function resetAssembly(){loadAssembly();}
+
+/* ------------ Crimping (mixed palette) ------------ */
+// keep T568B expected order internally but randomize the palette display
+const t568b=['orange-w','orange','green-w','blue','blue-w','green','brown-w','brown'];
+let crimpSlots=Array(8).fill(null);
+function shuffleArray(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
+function loadCrimping(){
+  const palette=document.getElementById('wirePalette');palette.innerHTML='';
+  // source color definitions (dataset ids remain descriptive so functionality is preserved)
+  const colorsSource=[
+    {id:'orange-w',label:'orange-white',cls:'wire orange-w'},{id:'orange',label:'orange',cls:'wire orange'},{id:'green-w',label:'green-white',cls:'wire green-w'},{id:'blue',label:'blue',cls:'wire blue'},{id:'blue-w',label:'blue-white',cls:'wire blue-w'},{id:'green',label:'green',cls:'wire green'},{id:'brown-w',label:'brown-white',cls:'wire brown-w'},{id:'brown',label:'brown',cls:'wire brown'}
+  ];
+
+  // make a copy and shuffle it so the palette order gives no clue
+  const colors = colorsSource.slice();
+  shuffleArray(colors);
+
+  // display generic labels to avoid giving color-name clues while keeping dataset ids
+  colors.forEach((c, idx)=>{
+    const w=document.createElement('div');
+    w.className=c.cls;
+    // generic label presented to user (Wire 1...Wire 8)
+    w.textContent = `Wire ${idx+1}`;
+    w.dataset.id=c.id;
+    w.draggable=true;
+    w.addEventListener('dragstart',wireDragStart);
+    w.addEventListener('click',()=>wireClickPlace(c.id));
+    palette.appendChild(w);
+  });
+
+  const r=document.getElementById('rj45');r.innerHTML='';
+  for(let i=0;i<8;i++){const s=document.createElement('div');s.className='slot';s.textContent=i+1;s.dataset.index=i;s.addEventListener('dragover',e=>e.preventDefault());s.addEventListener('drop',wireDrop);s.addEventListener('click',()=>removeWire(i));r.appendChild(s);}  
+  crimpSlots.fill(null);document.getElementById('crimpMsg').innerHTML='';
+}
+function wireDragStart(e){e.dataTransfer.setData('text/plain',e.target.dataset.id);} 
+function wireDrop(e){e.preventDefault();placeWire(e.dataTransfer.getData('text/plain'),parseInt(e.currentTarget.dataset.index));}
+function wireClickPlace(id){const n=crimpSlots.indexOf(null);if(n===-1){scream('RJ45 Full','All 8 slots are filled. Remove a wire or Reset.');return;}placeWire(id,n);} 
+function placeWire(id,idx){
+  if(crimpSlots.includes(id)){scream('Duplicate Wire','This wire color has already been used.');return;}
+  crimpSlots[idx]=id;refreshCrimp();
+  if(id===t568b[idx])document.getElementById('crimpMsg').innerHTML=`<p class="success">✅ Correct: ${formatWire(id)} in slot ${idx+1}</p>`;
+  else{scream('WRONG WIRE',`Slot ${idx+1} got <b>${formatWire(id)}</b> — expected <b>${formatWire(t568b[idx])}</b>.`);document.getElementById('crimpMsg').innerHTML=`<p class="error">❌ Wrong at slot ${idx+1}: got ${formatWire(id)} — expected ${formatWire(t568b[idx])}</p>`;}
+}
+function removeWire(i){if(!crimpSlots[i])return;const r=crimpSlots[i];crimpSlots[i]=null;refreshCrimp();document.getElementById('crimpMsg').innerHTML=`<p class="error">Removed ${formatWire(r)} from slot ${i+1}.</p>`;} 
+function formatWire(id){return id.replace('-w','-white');}
+function colorHex(id){switch(id){case'orange':return'#f18f01';case'orange-w':return'#ffe5cc';case'green':return'#28a745';case'green-w':return'#ccffcc';case'blue':return'#007bff';case'blue-w':return'#cce5ff';case'brown':return'#8b4513';case'brown-w':return'#e5d0c0';default:return'#ddd';}}
+function refreshCrimp(){document.querySelectorAll('#rj45 .slot').forEach((s,i)=>{const id=crimpSlots[i];if(!id){s.style.background='';s.textContent=i+1;}else{s.style.background=colorHex(id);s.style.color=id.endsWith('-w')?'#000':'#fff';s.textContent=formatWire(id);}});} 
+function checkCrimp(){
+  if(crimpSlots.includes(null)){scream('Incomplete Cable','All 8 wires must be placed.');document.getElementById('crimpMsg').innerHTML='<p class="error">Incomplete: place all 8 wires.</p>';return;}
+  const errs=[];for(let i=0;i<8;i++)if(crimpSlots[i]!==t568b[i])errs.push({i,got:crimpSlots[i],exp:t568b[i]});
+  if(errs.length){const f=errs[0];scream('WRONG TERMINATION',`Slot ${f.i+1} is <b>${formatWire(f.got)}</b> but should be <b>${formatWire(f.exp)}</b>.`);let h=`<p class="error">❌ Errors (${errs.length}):</p><ul>`;errs.forEach(e=>h+=`<li>Slot ${e.i+1}: got ${formatWire(e.got)} — expected ${formatWire(e.exp)}</li>`);h+='</ul>';document.getElementById('crimpMsg').innerHTML=h;return;}
+  document.getElementById('crimpMsg').innerHTML='<p class="success">✅ Correct! Cable terminated using T568B.</p>';
+}
+function resetCrimp(){loadCrimping();}
+
+/* ------------ IP Config ------------ */
+function validateIPConfig(){
+  const ip=document.getElementById('ipAddress').value.trim();
+  const mask=document.getElementById('subnetMask').value.trim();
+  const gateway=document.getElementById('defaultGateway').value.trim();
+  const dns=document.getElementById('dnsServer').value.trim();
+  const fb=document.getElementById('ipFeedback');
+  const ipPattern=/^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+  if(!ipPattern.test(ip)){fb.className='error';fb.textContent='❌ Invalid IP Address format.';return;}
+  if(!ipPattern.test(mask)){fb.className='error';fb.textContent='❌ Invalid Subnet Mask format.';return;}
+  if(!ipPattern.test(gateway)){fb.className='error';fb.textContent='❌ Invalid Default Gateway format.';return;}
+  if(!ipPattern.test(dns)){fb.className='error';fb.textContent='❌ Invalid DNS Server format.';return;}
+  const ipNet=ip.split('.').slice(0,3).join('.');const gwNet=gateway.split('.').slice(0,3).join('.');
+  if(ipNet!==gwNet){fb.className='error';fb.textContent='❌ IP and Gateway must be in the same network.';return;}
+  fb.className='success';fb.textContent='✅ Configuration correct. IP and Gateway are in the same network.';
+}
+function resetIPForm(){
+  document.getElementById('ipAddress').value='';
+  document.getElementById('subnetMask').value='';
+  document.getElementById('defaultGateway').value='';
+  document.getElementById('dnsServer').value='';
+  document.getElementById('ipFeedback').textContent='';
+}
+
+/* ------------ Init ------------ */
+document.addEventListener('DOMContentLoaded',()=>{try{loadAssembly();loadCrimping();}catch(e){}});
+</script>
+</body>
+</html>
